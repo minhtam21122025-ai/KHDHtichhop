@@ -49,8 +49,19 @@ export const addUser = async (identifier: string, password: string, role: UserRo
 
 export const login = async (identifier: string, password: string): Promise<User | null> => {
   try {
-    const response = await fetch(`${SCRIPT_URL}?action=login&account=${encodeURIComponent(identifier)}&password=${encodeURIComponent(password)}`);
+    const url = `${SCRIPT_URL}?action=login&account=${encodeURIComponent(identifier)}&password=${encodeURIComponent(password)}`;
+    console.log("Attempting login to:", url);
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Server response not OK:", response.status, errorText);
+      return null;
+    }
+
     const result = await response.json();
+    console.log("Login result:", result);
     
     if (result.success) {
       const sessionUser: User = {
@@ -61,9 +72,11 @@ export const login = async (identifier: string, password: string): Promise<User 
       };
       localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
       return sessionUser;
+    } else {
+      console.warn("Login failed:", result.message);
     }
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Login error (Network/CORS/Script):", error);
   }
   return null;
 };
