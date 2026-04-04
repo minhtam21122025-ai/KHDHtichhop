@@ -4,17 +4,27 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { UserPlus, Mail, Lock, CheckCircle2, AlertCircle, Users, Loader2 } from "lucide-react";
-import { addUser, getUsers } from "../lib/auth";
-import { User } from "../types";
+import { UserPlus, Mail, Lock, CheckCircle2, AlertCircle, Users, Loader2, Trash2, Edit2, X, Save } from "lucide-react";
+import { addUser, getUsers, deleteUser, updateUser } from "../lib/auth";
+import { User, UserRole } from "../types";
 
 export const AdminDashboard: React.FC = () => {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<UserRole>("user");
   const [message, setMessage] = useState({ type: "", text: "" });
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  
+  // State for editing
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editIdentifier, setEditIdentifier] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [editRole, setEditRole] = useState<UserRole>("user");
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -30,18 +40,78 @@ export const AdminDashboard: React.FC = () => {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAdding(true);
-    const result = await addUser(identifier, password);
+    const result = await addUser(identifier, password, role);
     
     if (result.success) {
       setMessage({ type: "success", text: result.message });
       setIdentifier("");
       setPassword("");
+      setRole("user");
       await loadUsers();
     } else {
       setMessage({ type: "error", text: result.message });
     }
 
     setIsAdding(false);
+    setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+  };
+
+  const handleDeleteUser = async (userEmail: string) => {
+    if (confirmDelete !== userEmail) {
+      setConfirmDelete(userEmail);
+      setTimeout(() => setConfirmDelete(null), 3000); // Reset after 3 seconds
+      return;
+    }
+    
+    setIsDeleting(userEmail);
+    const result = await deleteUser(userEmail);
+    
+    if (result.success) {
+      setMessage({ type: "success", text: result.message });
+      setConfirmDelete(null);
+      await loadUsers();
+    } else {
+      setMessage({ type: "error", text: result.message });
+    }
+    
+    setIsDeleting(null);
+    setTimeout(() => setMessage({ type: "", text: "" }), 3000);
+  };
+
+  const startEdit = (user: User) => {
+    setEditingUser(user);
+    setEditIdentifier(user.email || "");
+    setEditPassword(""); // Don't show old password
+    setEditRole(user.role);
+  };
+
+  const cancelEdit = () => {
+    setEditingUser(null);
+    setEditIdentifier("");
+    setEditPassword("");
+  };
+
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    setIsUpdating(true);
+    const result = await updateUser(
+      editingUser.email || "",
+      editIdentifier,
+      editPassword || undefined,
+      editRole
+    );
+
+    if (result.success) {
+      setMessage({ type: "success", text: result.message });
+      setEditingUser(null);
+      await loadUsers();
+    } else {
+      setMessage({ type: "error", text: result.message });
+    }
+
+    setIsUpdating(false);
     setTimeout(() => setMessage({ type: "", text: "" }), 3000);
   };
 
@@ -58,7 +128,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        <form onSubmit={handleAddUser} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+        <form onSubmit={handleAddUser} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div className="space-y-2">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Email hoặc Số điện thoại</label>
             <div className="relative">
@@ -87,6 +157,18 @@ export const AdminDashboard: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Quyền hạn</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as UserRole)}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+            >
+              <option value="user">Người dùng (User)</option>
+              <option value="admin">Quản trị viên (Admin)</option>
+            </select>
           </div>
 
           <button
@@ -131,22 +213,100 @@ export const AdminDashboard: React.FC = () => {
                 <tr className="bg-slate-50/50">
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tài khoản (Email/SĐT)</th>
                   <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vai trò</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ngày tạo</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {users.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-slate-700">{user.email || user.phone}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                        user.role === "admin" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
-                      }`}>
-                        {user.role}
-                      </span>
+                      {editingUser?.id === user.id ? (
+                        <input
+                          type="text"
+                          value={editIdentifier}
+                          onChange={(e) => setEditIdentifier(e.target.value)}
+                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium text-slate-700">{user.email || user.phone}</span>
+                      )}
                     </td>
-                    <td className="px-6 py-4 text-xs text-slate-400">
-                      {new Date(user.createdAt).toLocaleDateString('vi-VN')}
+                    <td className="px-6 py-4">
+                      {editingUser?.id === user.id ? (
+                        <select
+                          value={editRole}
+                          onChange={(e) => setEditRole(e.target.value as UserRole)}
+                          className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500"
+                        >
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      ) : (
+                        <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                          user.role === "admin" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
+                        }`}>
+                          {user.role}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {editingUser?.id === user.id ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <input
+                            type="password"
+                            placeholder="Mật khẩu mới (để trống nếu không đổi)"
+                            value={editPassword}
+                            onChange={(e) => setEditPassword(e.target.value)}
+                            className="w-40 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500"
+                          />
+                          <button
+                            onClick={handleUpdateUser}
+                            disabled={isUpdating}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                            title="Lưu"
+                          >
+                            {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"
+                            title="Hủy"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => startEdit(user)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Chỉnh sửa"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user.email || user.phone || "")}
+                            disabled={isDeleting === (user.email || user.phone)}
+                            className={`p-2 rounded-lg transition-all flex items-center gap-1 ${
+                              confirmDelete === (user.email || user.phone)
+                                ? "bg-red-600 text-white px-3"
+                                : "text-red-600 hover:bg-red-50"
+                            }`}
+                            title={confirmDelete === (user.email || user.phone) ? "Nhấn lần nữa để xóa" : "Xóa"}
+                          >
+                            {isDeleting === (user.email || user.phone) ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : confirmDelete === (user.email || user.phone) ? (
+                              <>
+                                <Trash2 className="w-4 h-4" />
+                                <span className="text-[10px] font-bold uppercase">Xác nhận?</span>
+                              </>
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

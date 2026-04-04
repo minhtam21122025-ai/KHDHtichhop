@@ -41,6 +41,30 @@ export const addUser = async (identifier: string, password: string, role: UserRo
   }
 };
 
+export const deleteUser = async (identifier: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    const url = `${SCRIPT_URL}?action=deleteUser&account=${encodeURIComponent(identifier.trim())}`;
+    const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Lỗi xóa người dùng:", error);
+    return { success: false, message: "Không thể kết nối với máy chủ Google Sheet." };
+  }
+};
+
+export const updateUser = async (oldIdentifier: string, newIdentifier: string, newPassword?: string, newRole: UserRole = "user"): Promise<{ success: boolean; message: string }> => {
+  try {
+    const url = `${SCRIPT_URL}?action=updateUser&oldAccount=${encodeURIComponent(oldIdentifier.trim())}&newAccount=${encodeURIComponent(newIdentifier.trim())}&newPassword=${encodeURIComponent(newPassword || "")}&newRole=${encodeURIComponent(newRole)}`;
+    const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Lỗi cập nhật người dùng:", error);
+    return { success: false, message: "Không thể kết nối với máy chủ Google Sheet." };
+  }
+};
+
 export const login = async (identifier: string, password: string): Promise<User | null> => {
   const cleanId = identifier.trim().toLowerCase();
   const cleanPass = password.trim();

@@ -88,6 +88,36 @@ function doGet(e) {
       sheet.appendRow([account, password, role]);
       return createResponse({ success: true, message: 'Thêm tài khoản thành công' });
     }
+
+    // 4. Xóa người dùng
+    if (action === 'deleteUser') {
+      const account = (e.parameter.account || "").toString().trim().toLowerCase();
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0].toString().trim().toLowerCase() === account) {
+          sheet.deleteRow(i + 1);
+          return createResponse({ success: true, message: 'Xóa tài khoản thành công' });
+        }
+      }
+      return createResponse({ success: false, message: 'Không tìm thấy tài khoản' });
+    }
+
+    // 5. Chỉnh sửa người dùng
+    if (action === 'updateUser') {
+      const oldAccount = (e.parameter.oldAccount || "").toString().trim().toLowerCase();
+      const newAccount = (e.parameter.newAccount || "").toString().trim();
+      const newPassword = (e.parameter.newPassword || "").toString().trim();
+      const newRole = (e.parameter.newRole || 'user').toString().trim();
+
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0].toString().trim().toLowerCase() === oldAccount) {
+          sheet.getRange(i + 1, 1).setValue(newAccount);
+          if (newPassword) sheet.getRange(i + 1, 2).setValue(newPassword);
+          sheet.getRange(i + 1, 3).setValue(newRole);
+          return createResponse({ success: true, message: 'Cập nhật tài khoản thành công' });
+        }
+      }
+      return createResponse({ success: false, message: 'Không tìm thấy tài khoản' });
+    }
     
     return createResponse({ success: false, message: 'Hành động không hợp lệ' });
   } catch (error) {
