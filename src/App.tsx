@@ -48,7 +48,7 @@ type IntegrationMode = "ai" | "digital" | "admin";
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [mode, setMode] = useState<IntegrationMode>("ai");
-  const [originalLesson, setOriginalLesson] = useState(SAMPLE_LESSON_MATH_7);
+  const [originalLesson, setOriginalLesson] = useState("");
   const [integratedAILesson, setIntegratedAILesson] = useState("");
   const [integratedDigitalLesson, setIntegratedDigitalLesson] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
