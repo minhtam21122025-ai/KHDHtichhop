@@ -5,60 +5,65 @@
 
 import { User, UserRole } from "../types";
 
-const USERS_KEY = "app_users";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZzTSiTZjiY-uRCMJZHWdvV3mPG1XX8Z14NQc4KMK5NocWWnB7JJR1z-YSYhUNLnlg/exec";
 const SESSION_KEY = "app_session";
 
-// Default admin account
-const DEFAULT_ADMIN: User = {
-  id: "admin-1",
-  email: "cosogiaoduchoanggia269@gmail.com",
-  password: "Laichau@123",
-  role: "admin",
-  createdAt: new Date().toISOString(),
-};
-
 export const initAuth = () => {
-  const storedUsers = localStorage.getItem(USERS_KEY);
-  if (!storedUsers) {
-    localStorage.setItem(USERS_KEY, JSON.stringify([DEFAULT_ADMIN]));
+  // No local initialization needed for Google Sheet
+};
+
+export const getUsers = async (): Promise<User[]> => {
+  try {
+    const response = await fetch(`${SCRIPT_URL}?action=getUsers`);
+    const data = await response.json();
+    return data.map((u: any) => ({
+      id: u.id,
+      email: u.account,
+      role: u.role,
+      createdAt: new Date().toISOString(), // Mocking date since it's not in sheet
+    }));
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return [];
   }
 };
 
-export const getUsers = (): User[] => {
-  const storedUsers = localStorage.getItem(USERS_KEY);
-  return storedUsers ? JSON.parse(storedUsers) : [DEFAULT_ADMIN];
-};
-
-export const addUser = (identifier: string, password: string, role: UserRole = "user"): { success: boolean; message: string } => {
-  const users = getUsers();
-  const isEmail = identifier.includes("@");
-  
-  if (users.find((u) => (isEmail ? u.email === identifier : u.phone === identifier))) {
-    return { success: false, message: `${isEmail ? "Email" : "Số điện thoại"} đã tồn tại.` };
+export const addUser = async (identifier: string, password: string, role: UserRole = "user"): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "addUser",
+        account: identifier,
+        password: password,
+        role: role
+      })
+    });
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error("Error adding user:", error);
+    return { success: false, message: "Lỗi kết nối máy chủ." };
   }
-
-  const newUser: User = {
-    id: Math.random().toString(36).substring(2, 9),
-    ...(isEmail ? { email: identifier } : { phone: identifier }),
-    password,
-    role,
-    createdAt: new Date().toISOString(),
-  };
-
-  localStorage.setItem(USERS_KEY, JSON.stringify([...users, newUser]));
-  return { success: true, message: "Thêm người dùng thành công." };
 };
 
-export const login = (identifier: string, password: string): User | null => {
-  const users = getUsers();
-  const user = users.find((u) => 
-    (u.email === identifier || u.phone === identifier) && u.password === password
-  );
-  if (user) {
-    const sessionUser = { ...user };
-    delete sessionUser.password; // Don't store password in session
-    localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
-    return sessionUser;
+export const login = async (identifier: string, password: string): Promise<User | null> => {
+  try {
+    const response = await fetch(`${SCRIPT_URL}?action=login&account=${encodeURIComponent(identifier)}&password=${encodeURIComponent(password)}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      const sessionUser: User = {
+        id: result.user.id,
+        email: result.user.account,
+        role: result.user.role,
+        createdAt: new Date().toISOString(),
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
+      return sessionUser;
+    }
+  } catch (error) {
+    console.error("Login error:", error);
   }
   return null;
 };

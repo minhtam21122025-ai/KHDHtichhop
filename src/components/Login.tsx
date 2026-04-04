@@ -18,21 +18,23 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError("");
 
-    // Simulate a small delay
-    setTimeout(() => {
-      const user = login(identifier, password);
+    try {
+      const user = await login(identifier, password);
       if (user) {
         onLoginSuccess(user);
       } else {
         setError("Email/Số điện thoại hoặc mật khẩu không chính xác.");
       }
+    } catch (err) {
+      setError("Đã xảy ra lỗi khi kết nối máy chủ.");
+    } finally {
       setIsSubmitting(false);
-    }, 800);
+    }
   };
 
   return (

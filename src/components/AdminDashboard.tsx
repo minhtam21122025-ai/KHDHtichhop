@@ -3,29 +3,45 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
-import { UserPlus, Mail, Lock, CheckCircle2, AlertCircle, Users } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { UserPlus, Mail, Lock, CheckCircle2, AlertCircle, Users, Loader2 } from "lucide-react";
 import { addUser, getUsers } from "../lib/auth";
+import { User } from "../types";
 
 export const AdminDashboard: React.FC = () => {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState({ type: "", text: "" });
-  const [users, setUsers] = useState(getUsers());
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAdding, setIsAdding] = useState(false);
 
-  const handleAddUser = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    setIsLoading(true);
+    const data = await getUsers();
+    setUsers(data);
+    setIsLoading(false);
+  };
+
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    const result = addUser(identifier, password);
+    setIsAdding(true);
+    const result = await addUser(identifier, password);
     
     if (result.success) {
       setMessage({ type: "success", text: result.message });
       setIdentifier("");
       setPassword("");
-      setUsers(getUsers());
+      await loadUsers();
     } else {
       setMessage({ type: "error", text: result.message });
     }
 
+    setIsAdding(false);
     setTimeout(() => setMessage({ type: "", text: "" }), 3000);
   };
 
@@ -75,9 +91,10 @@ export const AdminDashboard: React.FC = () => {
 
           <button
             type="submit"
-            className="h-[42px] bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            disabled={isAdding}
+            className="h-[42px] bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70"
           >
-            <UserPlus className="w-4 h-4" />
+            {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
             Tạo tài khoản
           </button>
         </form>
@@ -103,32 +120,39 @@ export const AdminDashboard: React.FC = () => {
           </span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50">
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tài khoản (Email/SĐT)</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vai trò</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ngày tạo</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-slate-700">{user.email || user.phone}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                      user.role === "admin" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
-                    }`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-xs text-slate-400">
-                    {new Date(user.createdAt).toLocaleDateString('vi-VN')}
-                  </td>
+          {isLoading ? (
+            <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-400">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <p className="text-sm font-medium">Đang tải danh sách...</p>
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/50">
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tài khoản (Email/SĐT)</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Vai trò</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ngày tạo</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {users.map((user) => (
+                  <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-slate-700">{user.email || user.phone}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                        user.role === "admin" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
+                      }`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-slate-400">
+                      {new Date(user.createdAt).toLocaleDateString('vi-VN')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
