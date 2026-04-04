@@ -5,7 +5,7 @@
 
 import { User, UserRole } from "../types";
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxZzTSiTZjiY-uRCMJZHWdvV3mPG1XX8Z14NQc4KMK5NocWWnB7JJR1z-YSYhUNLnlg/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyhJzkafJxxUKcHEqPCVzuTm9kFruWj_ixmsdBSPRXERvbI4t0VruuyetvKeSGlPjcP/exec";
 const SESSION_KEY = "app_session";
 
 export const initAuth = () => {
@@ -31,22 +31,25 @@ export const getUsers = async (): Promise<User[]> => {
 export const addUser = async (identifier: string, password: string, role: UserRole = "user"): Promise<{ success: boolean; message: string }> => {
   try {
     // Chuyển sang GET để tránh lỗi CORS Preflight
-    const url = `${SCRIPT_URL}?action=addUser&account=${encodeURIComponent(identifier)}&password=${encodeURIComponent(password)}&role=${encodeURIComponent(role)}`;
-    const response = await fetch(url);
+    const url = `${SCRIPT_URL}?action=addUser&account=${encodeURIComponent(identifier.trim())}&password=${encodeURIComponent(password.trim())}&role=${encodeURIComponent(role)}`;
+    const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
     const result = await response.json();
     return result;
   } catch (error) {
-    console.error("Error adding user:", error);
-    return { success: false, message: "Lỗi kết nối máy chủ." };
+    console.error("Lỗi thêm người dùng:", error);
+    return { success: false, message: "Không thể kết nối với máy chủ Google Sheet." };
   }
 };
 
 export const login = async (identifier: string, password: string): Promise<User | null> => {
-  // Fallback Admin (Dự phòng)
-  if (identifier === "admin@system.com" && password === "Admin@123") {
+  const cleanId = identifier.trim().toLowerCase();
+  const cleanPass = password.trim();
+
+  // 1. Tài khoản Admin mặc định (Dự phòng ưu tiên)
+  if (cleanId === "cosogiaoduchoanggia269@gmail.com" && cleanPass === "Laichau@123") {
     const adminUser: User = {
-      id: "fallback-admin",
-      email: "admin@system.com",
+      id: "default-admin",
+      email: "cosogiaoduchoanggia269@gmail.com",
       role: "admin",
       createdAt: new Date().toISOString(),
     };
@@ -55,12 +58,15 @@ export const login = async (identifier: string, password: string): Promise<User 
   }
 
   try {
-    const url = `${SCRIPT_URL}?action=login&account=${encodeURIComponent(identifier)}&password=${encodeURIComponent(password)}`;
+    const url = `${SCRIPT_URL}?action=login&account=${encodeURIComponent(cleanId)}&password=${encodeURIComponent(cleanPass)}`;
     
     // Đơn giản hóa fetch để tránh lỗi CORS
-    const response = await fetch(url);
+    const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
     
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error("Lỗi kết nối script:", response.status);
+      return null;
+    }
 
     const result = await response.json();
     
@@ -75,7 +81,7 @@ export const login = async (identifier: string, password: string): Promise<User 
       return sessionUser;
     }
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Lỗi đăng nhập hệ thống:", error);
   }
   return null;
 };

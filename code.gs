@@ -69,7 +69,7 @@ function doGet(e) {
       return createResponse({ success: false, message: 'Sai tài khoản hoặc mật khẩu' });
     }
 
-    // 3. Thêm người dùng (Chuyển sang GET để tránh lỗi CORS)
+    // 3. Thêm người dùng (Sử dụng GET)
     if (action === 'addUser') {
       const account = (e.parameter.account || "").toString().trim();
       const password = (e.parameter.password || "").toString().trim();
@@ -95,7 +95,6 @@ function doGet(e) {
   }
 }
 
-// Giữ doPost trống hoặc xóa đi vì chúng ta dùng doGet cho mọi thứ
 function doPost(e) {
   return doGet(e);
 }
