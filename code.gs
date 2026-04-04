@@ -10,9 +10,14 @@ const SHEET_NAME = 'Sheet1';
 function getTargetSheet(ss) {
   let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
-    sheet = ss.getSheets()[0]; // Lấy trang tính đầu tiên nếu không tìm thấy Sheet1
+    sheet = ss.getSheets()[0];
   }
   return sheet;
+}
+
+function createResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 function doGet(e) {
@@ -22,6 +27,7 @@ function doGet(e) {
     const sheet = getTargetSheet(ss);
     const data = sheet.getDataRange().getValues();
     
+    // 1. Lấy danh sách người dùng
     if (action === 'getUsers') {
       const users = [];
       for (let i = 1; i < data.length; i++) {
@@ -29,69 +35,67 @@ function doGet(e) {
           users.push({
             id: i.toString(),
             account: data[i][0].toString().trim(),
-            password: data[i][1].toString().trim(),
             role: (data[i][2] || 'user').toString().trim()
           });
         }
       }
-      return ContentService.createTextOutput(JSON.stringify(users))
-        .setMimeType(ContentService.MimeType.JSON);
+      return createResponse(users);
     }
     
+    // 2. Đăng nhập
     if (action === 'login') {
       const account = (e.parameter.account || "").toString().trim().toLowerCase();
       const password = (e.parameter.password || "").toString().trim();
       
+      if (!account || !password) {
+        return createResponse({ success: false, message: 'Thiếu tài khoản hoặc mật khẩu' });
+      }
+
       for (let i = 1; i < data.length; i++) {
         const sheetAccount = (data[i][0] || "").toString().trim().toLowerCase();
         const sheetPassword = (data[i][1] || "").toString().trim();
         
         if (sheetAccount === account && sheetPassword === password) {
-          return ContentService.createTextOutput(JSON.stringify({
+          return createResponse({
             success: true,
             user: {
               id: i.toString(),
-              account: data[i][0],
+              account: data[i][0].toString().trim(),
               role: (data[i][2] || 'user').toString().trim()
             }
-          })).setMimeType(ContentService.MimeType.JSON);
+          });
         }
       }
-      return ContentService.createTextOutput(JSON.stringify({ success: false, message: 'Sai tài khoản hoặc mật khẩu' }))
-        .setMimeType(ContentService.MimeType.JSON);
+      return createResponse({ success: false, message: 'Sai tài khoản hoặc mật khẩu' });
     }
-  } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, message: error.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
 
-function doPost(e) {
-  try {
-    const params = JSON.parse(e.postData.contents);
-    const action = params.action;
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = getTargetSheet(ss);
-    
+    // 3. Thêm người dùng (Chuyển sang GET để tránh lỗi CORS)
     if (action === 'addUser') {
-      const account = (params.account || "").toString().trim();
-      const password = (params.password || "").toString().trim();
-      const role = (params.role || 'user').toString().trim();
+      const account = (e.parameter.account || "").toString().trim();
+      const password = (e.parameter.password || "").toString().trim();
+      const role = (e.parameter.role || 'user').toString().trim();
       
-      const data = sheet.getDataRange().getValues();
+      if (!account || !password) {
+        return createResponse({ success: false, message: 'Thiếu thông tin tài khoản' });
+      }
+
       for (let i = 1; i < data.length; i++) {
         if (data[i][0].toString().trim().toLowerCase() === account.toLowerCase()) {
-          return ContentService.createTextOutput(JSON.stringify({ success: false, message: 'Tài khoản đã tồn tại' }))
-            .setMimeType(ContentService.MimeType.JSON);
+          return createResponse({ success: false, message: 'Tài khoản đã tồn tại' });
         }
       }
       
       sheet.appendRow([account, password, role]);
-      return ContentService.createTextOutput(JSON.stringify({ success: true, message: 'Thêm tài khoản thành công' }))
-        .setMimeType(ContentService.MimeType.JSON);
+      return createResponse({ success: true, message: 'Thêm tài khoản thành công' });
     }
+    
+    return createResponse({ success: false, message: 'Hành động không hợp lệ' });
   } catch (error) {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, message: error.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
+    return createResponse({ success: false, message: 'Lỗi Script: ' + error.toString() });
   }
+}
+
+// Giữ doPost trống hoặc xóa đi vì chúng ta dùng doGet cho mọi thứ
+function doPost(e) {
+  return doGet(e);
 }
