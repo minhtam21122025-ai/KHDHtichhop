@@ -14,13 +14,21 @@ export const initAuth = () => {
 
 export const getUsers = async (): Promise<User[]> => {
   try {
-    const response = await fetch(`${SCRIPT_URL}?action=getUsers`);
+    const response = await fetch(`${SCRIPT_URL}?action=getUsers`, { 
+      method: 'GET', 
+      cache: 'no-cache',
+      mode: 'cors'
+    });
     const data = await response.json();
+    if (!Array.isArray(data)) {
+      console.error("Dữ liệu trả về không phải là mảng:", data);
+      return [];
+    }
     return data.map((u: any) => ({
-      id: u.id,
-      email: u.account,
-      role: u.role,
-      createdAt: new Date().toISOString(), // Mocking date since it's not in sheet
+      id: u.id || Math.random().toString(36).substr(2, 9),
+      email: u.account || u.email || "",
+      role: (u.role === "admin" ? "admin" : "user") as UserRole,
+      createdAt: new Date().toISOString(),
     }));
   } catch (error) {
     console.error("Error fetching users:", error);
@@ -30,38 +38,41 @@ export const getUsers = async (): Promise<User[]> => {
 
 export const addUser = async (identifier: string, password: string, role: UserRole = "user"): Promise<{ success: boolean; message: string }> => {
   try {
-    // Chuyển sang GET để tránh lỗi CORS Preflight
-    const url = `${SCRIPT_URL}?action=addUser&account=${encodeURIComponent(identifier.trim())}&password=${encodeURIComponent(password.trim())}&role=${encodeURIComponent(role)}`;
-    const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+    const cleanId = identifier.trim();
+    const url = `${SCRIPT_URL}?action=addUser&account=${encodeURIComponent(cleanId)}&email=${encodeURIComponent(cleanId)}&password=${encodeURIComponent(password.trim())}&role=${encodeURIComponent(role)}`;
+    const response = await fetch(url, { method: 'GET', cache: 'no-cache', mode: 'cors' });
     const result = await response.json();
     return result;
   } catch (error) {
     console.error("Lỗi thêm người dùng:", error);
-    return { success: false, message: "Không thể kết nối với máy chủ Google Sheet." };
+    return { success: false, message: "Không thể kết nối với Google Sheet. Vui lòng kiểm tra kết nối mạng hoặc Script URL." };
   }
 };
 
 export const deleteUser = async (identifier: string): Promise<{ success: boolean; message: string }> => {
   try {
-    const url = `${SCRIPT_URL}?action=deleteUser&account=${encodeURIComponent(identifier.trim())}`;
-    const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+    const cleanId = identifier.trim();
+    const url = `${SCRIPT_URL}?action=deleteUser&account=${encodeURIComponent(cleanId)}&email=${encodeURIComponent(cleanId)}`;
+    const response = await fetch(url, { method: 'GET', cache: 'no-cache', mode: 'cors' });
     const result = await response.json();
     return result;
   } catch (error) {
     console.error("Lỗi xóa người dùng:", error);
-    return { success: false, message: "Không thể kết nối với máy chủ Google Sheet." };
+    return { success: false, message: "Không thể xóa người dùng trên Google Sheet." };
   }
 };
 
 export const updateUser = async (oldIdentifier: string, newIdentifier: string, newPassword?: string, newRole: UserRole = "user"): Promise<{ success: boolean; message: string }> => {
   try {
-    const url = `${SCRIPT_URL}?action=updateUser&oldAccount=${encodeURIComponent(oldIdentifier.trim())}&newAccount=${encodeURIComponent(newIdentifier.trim())}&newPassword=${encodeURIComponent(newPassword || "")}&newRole=${encodeURIComponent(newRole)}`;
-    const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+    const cleanOld = oldIdentifier.trim();
+    const cleanNew = newIdentifier.trim();
+    const url = `${SCRIPT_URL}?action=updateUser&oldAccount=${encodeURIComponent(cleanOld)}&oldEmail=${encodeURIComponent(cleanOld)}&newAccount=${encodeURIComponent(cleanNew)}&newEmail=${encodeURIComponent(cleanNew)}&newPassword=${encodeURIComponent(newPassword || "")}&newRole=${encodeURIComponent(newRole)}`;
+    const response = await fetch(url, { method: 'GET', cache: 'no-cache', mode: 'cors' });
     const result = await response.json();
     return result;
   } catch (error) {
     console.error("Lỗi cập nhật người dùng:", error);
-    return { success: false, message: "Không thể kết nối với máy chủ Google Sheet." };
+    return { success: false, message: "Không thể cập nhật trên Google Sheet." };
   }
 };
 
