@@ -1,5 +1,5 @@
 {
-  "name": "HỆ THỐNG TẠO KHBD TÍCH HỢP NLS VA AI",
-  "description": "Ứng dụng tự động tích hợp năng lực Trí tuệ nhân tạo (AI) vào giáo án trung học theo Khung nội dung thí điểm của Bộ Giáo dục và Đào tạo (Quyết định 3439/QĐ-BGDĐT).",
+  "name": "Hệ thống tích hợp năng lực số (QĐ 3456-BGD) và Năng lực AI (QĐ 3439)",
+  "description": "Hệ thống tích hợp năng lực số (QĐ 3456-BGD) và Năng lực AI (QĐ 3439) theo đúng chuẩn BGD.",
   "requestFramePermissions": []
 }

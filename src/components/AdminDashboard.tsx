@@ -26,6 +26,8 @@ export const AdminDashboard: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
+  
   useEffect(() => {
     loadUsers();
   }, []);
@@ -34,6 +36,7 @@ export const AdminDashboard: React.FC = () => {
     setIsLoading(true);
     const data = await getUsers();
     setUsers(data);
+    setLastSynced(new Date().toLocaleTimeString("vi-VN"));
     setIsLoading(false);
   };
 
@@ -176,8 +179,17 @@ export const AdminDashboard: React.FC = () => {
             disabled={isAdding}
             className="h-[42px] bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70"
           >
-            {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
-            Tạo tài khoản
+            {isAdding ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Đang đồng bộ...
+              </>
+            ) : (
+              <>
+                <UserPlus className="w-4 h-4" />
+                Tạo tài khoản
+              </>
+            )}
           </button>
         </form>
 
@@ -197,9 +209,25 @@ export const AdminDashboard: React.FC = () => {
             <Users className="w-5 h-5 text-slate-400" />
             <h3 className="font-bold text-slate-800">Danh sách người dùng</h3>
           </div>
-          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-xs font-bold text-slate-500">
-            {users.length} thành viên
-          </span>
+          <div className="flex items-center gap-4">
+            {lastSynced && (
+              <span className="text-[10px] font-medium text-slate-400 italic">
+                Cập nhật lúc: {lastSynced}
+              </span>
+            )}
+            <button
+              onClick={loadUsers}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+              title="Đồng bộ lại từ Google Sheet"
+            >
+              <Loader2 className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              {isLoading ? "Đang đồng bộ..." : "Đồng bộ dữ liệu"}
+            </button>
+            <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-xs font-bold text-slate-500">
+              {users.length} thành viên
+            </span>
+          </div>
         </div>
         <div className="overflow-x-auto">
           {isLoading ? (
@@ -263,7 +291,7 @@ export const AdminDashboard: React.FC = () => {
                             onClick={handleUpdateUser}
                             disabled={isUpdating}
                             className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
-                            title="Lưu"
+                            title="Lưu (Đồng bộ với Google Sheet)"
                           >
                             {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                           </button>
@@ -292,10 +320,13 @@ export const AdminDashboard: React.FC = () => {
                                 ? "bg-red-600 text-white px-3"
                                 : "text-red-600 hover:bg-red-50"
                             }`}
-                            title={confirmDelete === (user.email || user.phone) ? "Nhấn lần nữa để xóa" : "Xóa"}
+                            title={confirmDelete === (user.email || user.phone) ? "Nhấn lần nữa để xóa và đồng bộ" : "Xóa"}
                           >
                             {isDeleting === (user.email || user.phone) ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <div className="flex items-center gap-1">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <span className="text-[10px] font-bold uppercase">Đang đồng bộ...</span>
+                              </div>
                             ) : confirmDelete === (user.email || user.phone) ? (
                               <>
                                 <Trash2 className="w-4 h-4" />

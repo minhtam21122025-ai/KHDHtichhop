@@ -64,6 +64,7 @@ export default function App() {
   const [subSubject, setSubSubject] = useState("");
   const [grade, setGrade] = useState(GRADES[6]); // Default Lớp 7
   const [customAICompetency, setCustomAICompetency] = useState("");
+  const [customDigitalCompetency, setCustomDigitalCompetency] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -183,6 +184,8 @@ HƯỚNG DẪN RIÊNG CHO NĂNG LỰC SỐ (Thông tư 02 & CV 3456):
 - Bắt buộc sử dụng đúng mã hóa chỉ báo từ khung năng lực số (ví dụ: 1.1.TC1a) cho các mục tiêu và hoạt động.
 `;
 
+        const customRequirement = type === "ai" ? customAICompetency : customDigitalCompetency;
+        
         const prompt = `
 Bạn là một chuyên gia giáo dục và phát triển chương trình giảng dạy cấp trung học tại Việt Nam. 
 Nhiệm vụ của bạn là phân tích giáo án gốc và tự động tích hợp các năng lực ${competencyType} theo ${frameworkName}.
@@ -191,7 +194,7 @@ THÔNG TIN BỐI CẢNH:
 - Môn học: ${subject}
 - Phân môn: ${subSubject || "Không có"}
 - Khối lớp: ${grade}
-${customAICompetency ? `- Yêu cầu riêng của giáo viên: ${customAICompetency}` : ""}
+${customRequirement ? `- Yêu cầu riêng của giáo viên: ${customRequirement}` : ""}
 
 DƯỚI ĐÂY LÀ CÁC TÀI LIỆU CƠ SỞ:
 1. Khung nội dung hướng dẫn:
@@ -304,7 +307,7 @@ Hãy trả về toàn bộ giáo án đã được tích hợp ${type === "ai" ?
             <div className="bg-red-600 p-2 rounded-lg shadow-sm shadow-red-200">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-800">Hệ thống tạo năng lực số và năng lực AI cho giáo viên THCS</h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-800">Hệ thống tích hợp năng lực số (QĐ 3456-BGD) và Năng lực AI (QĐ 3439) theo đúng chuẩn BGD</h1>
           </div>
           <div className="flex items-center gap-6">
             <div className="hidden md:flex items-center gap-3 px-4 py-1.5 rounded-xl bg-slate-100 border border-slate-200">
@@ -367,6 +370,20 @@ Hãy trả về toàn bộ giáo án đã được tích hợp ${type === "ai" ?
               </div>
 
               <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Khối lớp</label>
+                <div className="relative">
+                  <select
+                    value={grade}
+                    onChange={(e) => setGrade(e.target.value)}
+                    className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm appearance-none focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                  >
+                    {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Môn học</label>
                 <div className="relative">
                   <select
@@ -392,28 +409,26 @@ Hãy trả về toàn bộ giáo án đã được tích hợp ${type === "ai" ?
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Khối lớp</label>
-                <div className="relative">
-                  <select
-                    value={grade}
-                    onChange={(e) => setGrade(e.target.value)}
-                    className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm appearance-none focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
-                  >
-                    {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Yêu cầu bổ sung (Tùy chọn)
+                  Bổ xung Năng lực AI (nếu có)
                 </label>
                 <textarea
                   value={customAICompetency}
                   onChange={(e) => setCustomAICompetency(e.target.value)}
-                  placeholder="Nhập yêu cầu hoặc năng lực cụ thể bạn muốn tích hợp..."
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm h-24 resize-none focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                  placeholder="Nhập yêu cầu hoặc năng lực AI cụ thể bạn muốn tích hợp..."
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm h-20 resize-none focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  Yêu cầu bổ xung NLS (Nếu có)
+                </label>
+                <textarea
+                  value={customDigitalCompetency}
+                  onChange={(e) => setCustomDigitalCompetency(e.target.value)}
+                  placeholder="Nhập yêu cầu hoặc năng lực số cụ thể bạn muốn tích hợp..."
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm h-20 resize-none focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
                 />
               </div>
 
@@ -478,13 +493,10 @@ Hãy trả về toàn bộ giáo án đã được tích hợp ${type === "ai" ?
             <div className="p-6 bg-slate-800 rounded-2xl text-white shadow-xl" id="promo">
               <h3 className="font-bold mb-2 flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-red-400" />
-                {mode === "ai" ? "Chuyên gia AI Education" : "Chuyên gia Digital Education"}
+                Hệ thống tích hợp năng lực số & AI
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed">
-                {mode === "ai" 
-                  ? "Hệ thống sử dụng mô hình Gemini 3.1 Flash để phân tích và tích hợp năng lực AI theo QĐ 3439."
-                  : "Hệ thống sử dụng mô hình Gemini 3.1 Flash để tích hợp năng lực số (NLS) theo Thông tư 02 & CV 3456."
-                }
+                Hệ thống tích hợp năng lực số (QĐ 3456-BGD) và Năng lực AI (QĐ 3439) theo đúng chuẩn BGD.
               </p>
             </div>
           </div>
