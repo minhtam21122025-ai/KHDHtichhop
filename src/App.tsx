@@ -27,11 +27,14 @@ import {
   User as UserIcon,
   ShieldCheck
 } from "lucide-react";
-import { AI_FRAMEWORK_3439 } from "./lib/ai-framework";
+import { AI_FRAMEWORK_3439, AI_OBJECTIVES_BY_GRADE } from "./lib/ai-framework";
 import { 
   DIGITAL_FRAMEWORK_GENERAL, 
+  DIGITAL_INDICATORS_1_3,
+  DIGITAL_INDICATORS_4_5,
   DIGITAL_INDICATORS_6_7, 
-  DIGITAL_INDICATORS_8_9 
+  DIGITAL_INDICATORS_8_9,
+  DIGITAL_INDICATORS_10_12
 } from "./lib/digital-framework";
 import { SAMPLE_LESSON_MATH_7 } from "./lib/sample-lesson";
 import { SUBJECTS, GRADES } from "./constants";
@@ -140,16 +143,23 @@ export default function App() {
       const model = "gemini-3-flash-preview";
       
       // 1. Prepare AI Framework
-      const aiFramework = AI_FRAMEWORK_3439;
+      const gradeNum = parseInt(grade.replace(/\D/g, ""));
+      const aiObjectives = AI_OBJECTIVES_BY_GRADE[gradeNum] || "Chưa có mục tiêu cụ thể cho khối lớp này.";
+      const aiFramework = `${AI_FRAMEWORK_3439}\n\nMỤC TIÊU CỤ THỂ CHO KHỐI ${gradeNum}:\n${aiObjectives}`;
       const aiFrameworkName = "Quyết định số 3439/QĐ-BGDĐT (Năng lực AI)";
       
       // 2. Prepare Digital Framework
-      const gradeNum = parseInt(grade.replace(/\D/g, ""));
       let digitalIndicators = "";
-      if (gradeNum >= 6 && gradeNum <= 7) {
+      if (gradeNum >= 1 && gradeNum <= 3) {
+        digitalIndicators = DIGITAL_INDICATORS_1_3;
+      } else if (gradeNum >= 4 && gradeNum <= 5) {
+        digitalIndicators = DIGITAL_INDICATORS_4_5;
+      } else if (gradeNum >= 6 && gradeNum <= 7) {
         digitalIndicators = DIGITAL_INDICATORS_6_7;
       } else if (gradeNum >= 8 && gradeNum <= 9) {
         digitalIndicators = DIGITAL_INDICATORS_8_9;
+      } else if (gradeNum >= 10 && gradeNum <= 12) {
+        digitalIndicators = DIGITAL_INDICATORS_10_12;
       }
       const digitalFramework = `${DIGITAL_FRAMEWORK_GENERAL}\n\n${digitalIndicators}`;
       const digitalFrameworkName = "Thông tư 02/2025/TT-BGDĐT và Công văn 3456/BGDĐT-GDPT (Năng lực Số)";
