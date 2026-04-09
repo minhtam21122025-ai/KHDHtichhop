@@ -186,9 +186,9 @@ export default function App() {
         throw new Error("API Key (GEMINI_API_KEY) chưa được cấu hình. Nếu bạn đang chạy trên Vercel, hãy thêm GEMINI_API_KEY vào Environment Variables.");
       }
 
-      // Use gemini-1.5-flash for maximum free tier limits and high speed
+      // Use gemini-3-flash-preview for maximum free tier limits and high speed
       // It supports up to 1M tokens, which easily handles 20 pages (approx 30k-40k tokens)
-      const model = "gemini-1.5-flash";
+      const model = "gemini-3-flash-preview";
       
       // 1. Prepare Frameworks
       const gradeNum = parseInt(grade.replace(/\D/g, ""));
@@ -248,7 +248,8 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
             contents: userPrompt,
             config: {
               systemInstruction,
-              maxOutputTokens: 16384
+              maxOutputTokens: 16384,
+              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } // Stable and fast response
             }
           });
 
@@ -709,7 +710,7 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
               <div className="bg-slate-50 border-t border-slate-200 px-8 py-3 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 <span>Trạng thái: {isProcessingAI || isProcessingDigital ? 'Đang xử lý' : 'Sẵn sàng'}</span>
                 <span>Hỗ trợ: Tối đa 20 trang</span>
-                <span>Mô hình: Gemini 1.5 Flash (Free Tier)</span>
+                <span>Mô hình: Gemini 3 Flash (Free Tier)</span>
               </div>
             </div>
             </div>
