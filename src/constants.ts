@@ -12,6 +12,7 @@ export const SUBJECTS = [
   "Sinh học",
   "Lịch sử",
   "Địa lí",
+  "Giáo dục công dân (GDCD)",
   "Giáo dục kinh tế và pháp luật",
   "Tin học",
   "Công nghệ",

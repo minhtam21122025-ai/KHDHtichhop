@@ -79,6 +79,37 @@ export default function App() {
     }
   }, []);
 
+  const filteredSubjects = SUBJECTS.filter(s => {
+    const gradeNum = parseInt(grade.replace(/\D/g, ""));
+    
+    // GDCD only for 6-9
+    if (s === "Giáo dục công dân (GDCD)") {
+      return gradeNum >= 6 && gradeNum <= 9;
+    }
+    
+    // GDKT & PL only for 10-12
+    if (s === "Giáo dục kinh tế và pháp luật") {
+      return gradeNum >= 10;
+    }
+    
+    // THCS specific subjects
+    if (s.includes("(THCS)")) {
+      return gradeNum >= 6 && gradeNum <= 9;
+    }
+    
+    // Primary specific (optional, but good for completeness)
+    // For now just focus on the user's request
+    
+    return true;
+  });
+
+  // Ensure selected subject is valid for the grade
+  useEffect(() => {
+    if (!filteredSubjects.includes(subject)) {
+      setSubject(filteredSubjects[0]);
+    }
+  }, [grade, filteredSubjects, subject]);
+
   const handleCancel = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -396,7 +427,7 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
                     onChange={(e) => setSubject(e.target.value)}
                     className="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm appearance-none focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
                   >
-                    {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                    {filteredSubjects.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                   <ChevronDown className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
