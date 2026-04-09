@@ -248,8 +248,7 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
             contents: userPrompt,
             config: {
               systemInstruction,
-              maxOutputTokens: 16384,
-              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } // Stable and fast response
+              maxOutputTokens: 16384
             }
           });
 
