@@ -54,7 +54,9 @@ export default function App() {
   const [originalLesson, setOriginalLesson] = useState("");
   const [integratedAILesson, setIntegratedAILesson] = useState("");
   const [integratedDigitalLesson, setIntegratedDigitalLesson] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
+  const [isProcessingDigital, setIsProcessingDigital] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<"input" | "ai_output" | "digital_output">("input");
@@ -80,7 +82,8 @@ export default function App() {
   const handleCancel = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
-      setIsProcessing(false);
+      setIsProcessingAI(false);
+      setIsProcessingDigital(false);
       setError("Đã hủy quá trình xử lý.");
     }
   };
@@ -126,136 +129,135 @@ export default function App() {
     }
   };
 
-  const handleIntegrateAI = async () => {
+  const handleIntegrate = async (type: "ai" | "digital") => {
     if (!originalLesson.trim()) {
       setError("Vui lòng nhập hoặc tải lên giáo án gốc.");
       return;
     }
 
-    setIsProcessing(true);
+    if (type === "ai") {
+      setIsProcessingAI(true);
+      setIntegratedAILesson("");
+    } else {
+      setIsProcessingDigital(true);
+      setIntegratedDigitalLesson("");
+    }
+
+    setIsTruncated(false);
     setError("");
-    setIntegratedAILesson("");
-    setIntegratedDigitalLesson("");
     
     // Initialize AbortController
     abortControllerRef.current = new AbortController();
 
     try {
-      const model = "gemini-3-flash-preview";
+      // Determine model based on document length (Flash for speed, Pro for long/complex docs)
+      const model = originalLesson.length > 25000 ? "gemini-3.1-pro-preview" : "gemini-3-flash-preview";
       
-      // 1. Prepare AI Framework
+      // 1. Prepare Frameworks
       const gradeNum = parseInt(grade.replace(/\D/g, ""));
-      const aiObjectives = AI_OBJECTIVES_BY_GRADE[gradeNum] || "Chưa có mục tiêu cụ thể cho khối lớp này.";
-      const aiFramework = `${AI_FRAMEWORK_3439}\n\nMỤC TIÊU CỤ THỂ CHO KHỐI ${gradeNum}:\n${aiObjectives}`;
-      const aiFrameworkName = "Quyết định số 3439/QĐ-BGDĐT (Năng lực AI)";
       
-      // 2. Prepare Digital Framework
-      let digitalIndicators = "";
-      if (gradeNum >= 1 && gradeNum <= 3) {
-        digitalIndicators = DIGITAL_INDICATORS_1_3;
-      } else if (gradeNum >= 4 && gradeNum <= 5) {
-        digitalIndicators = DIGITAL_INDICATORS_4_5;
-      } else if (gradeNum >= 6 && gradeNum <= 7) {
-        digitalIndicators = DIGITAL_INDICATORS_6_7;
-      } else if (gradeNum >= 8 && gradeNum <= 9) {
-        digitalIndicators = DIGITAL_INDICATORS_8_9;
-      } else if (gradeNum >= 10 && gradeNum <= 12) {
-        digitalIndicators = DIGITAL_INDICATORS_10_12;
+      let framework = "";
+      let frameworkName = "";
+      let competencyType = "";
+      let specificInstructions = "";
+
+      if (type === "ai") {
+        const aiObjectives = AI_OBJECTIVES_BY_GRADE[gradeNum] || "Chưa có mục tiêu cụ thể cho khối lớp này.";
+        framework = `${AI_FRAMEWORK_3439}\n\nMỤC TIÊU CỤ THỂ CHO KHỐI ${gradeNum}:\n${aiObjectives}`;
+        frameworkName = "Quyết định số 3439/QĐ-BGDĐT (Năng lực AI)";
+        competencyType = "Trí tuệ nhân tạo (AI)";
+        specificInstructions = `Tập trung vào các khía cạnh của AI: cách hoạt động, ứng dụng, đạo đức và tư duy lấy con người làm trung tâm. Sử dụng thuật ngữ: "Trí tuệ nhân tạo", "Học máy", "Dữ liệu huấn luyện", "Đạo đức AI".`;
+      } else {
+        let digitalIndicators = "";
+        if (gradeNum >= 1 && gradeNum <= 3) digitalIndicators = DIGITAL_INDICATORS_1_3;
+        else if (gradeNum >= 4 && gradeNum <= 5) digitalIndicators = DIGITAL_INDICATORS_4_5;
+        else if (gradeNum >= 6 && gradeNum <= 7) digitalIndicators = DIGITAL_INDICATORS_6_7;
+        else if (gradeNum >= 8 && gradeNum <= 9) digitalIndicators = DIGITAL_INDICATORS_8_9;
+        else if (gradeNum >= 10 && gradeNum <= 12) digitalIndicators = DIGITAL_INDICATORS_10_12;
+        
+        framework = `${DIGITAL_FRAMEWORK_GENERAL}\n\n${digitalIndicators}`;
+        frameworkName = "Thông tư 02/2025/TT-BGDĐT và Công văn 3456/BGDĐT-GDPT (Năng lực Số)";
+        competencyType = "Số (Digital)";
+        specificInstructions = `Tập trung vào kỹ năng sử dụng công cụ số, khai thác dữ liệu, giao tiếp số và an toàn thông tin. Bắt buộc sử dụng mã hóa chỉ báo (ví dụ: 1.1.TC1a).`;
       }
-      const digitalFramework = `${DIGITAL_FRAMEWORK_GENERAL}\n\n${digitalIndicators}`;
-      const digitalFrameworkName = "Thông tư 02/2025/TT-BGDĐT và Công văn 3456/BGDĐT-GDPT (Năng lực Số)";
 
-      const generateIntegratedContent = async (type: "ai" | "digital") => {
-        const framework = type === "ai" ? aiFramework : digitalFramework;
-        const frameworkName = type === "ai" ? aiFrameworkName : digitalFrameworkName;
-        const competencyType = type === "ai" ? "Trí tuệ nhân tạo (AI)" : "Số (Digital)";
-        
-        const specificInstructions = type === "ai" 
-          ? `
-HƯỚNG DẪN RIÊNG CHO NĂNG LỰC AI (QĐ 3439):
-- Tập trung vào các khía cạnh của Trí tuệ nhân tạo: cách AI hoạt động, ứng dụng AI trong học tập, đạo đức khi sử dụng AI, và tư duy lấy con người làm trung tâm.
-- Các hoạt động tích hợp nên liên quan đến việc sử dụng các công cụ AI (như chatbot, công cụ tạo ảnh, công cụ phân tích dữ liệu AI) hoặc thảo luận về tác động của AI.
-- Sử dụng các thuật ngữ chuyên môn về AI như: "Trí tuệ nhân tạo", "Học máy", "Dữ liệu huấn luyện", "Đạo đức AI".
-`
-          : `
-HƯỚNG DẪN RIÊNG CHO NĂNG LỰC SỐ (Thông tư 02 & CV 3456):
-- Tập trung vào kỹ năng sử dụng công cụ số, khai thác dữ liệu, giao tiếp trên môi trường số và an toàn thông tin.
-- Các hoạt động tích hợp nên liên quan đến việc tìm kiếm thông tin trên internet, sử dụng phần mềm văn phòng, công cụ cộng tác trực tuyến, hoặc bảo vệ dữ liệu cá nhân.
-- Bắt buộc sử dụng đúng mã hóa chỉ báo từ khung năng lực số (ví dụ: 1.1.TC1a) cho các mục tiêu và hoạt động.
-`;
+      const customRequirement = type === "ai" ? customAICompetency : customDigitalCompetency;
+      
+      const systemInstruction = `Bạn là chuyên gia giáo dục Việt Nam cao cấp. Nhiệm vụ: Tích hợp năng lực ${competencyType} vào giáo án gốc.
+NGUYÊN TẮC TỐI THƯỢNG:
+1. BẢO TOÀN 100% NỘI DUNG GỐC: Tuyệt đối không lược bỏ, không tóm tắt, không thay đổi bất kỳ từ ngữ nào của giáo án gốc.
+2. GIỮ NGUYÊN ĐỊNH DẠNG: Giữ nguyên toàn bộ cấu trúc HTML, bảng biểu, hình ảnh (<img>), công thức.
+3. KHÔNG CẮT XÉN: Trả về TOÀN BỘ giáo án.
+4. NỘI DUNG MỚI: Chỉ thêm 02 mục tiêu và 01-02 hoạt động phù hợp. Nội dung thêm mới PHẢI nằm trong <span style="color:red;">...</span>.
+5. CÔNG THỨC: Chuyển công thức sang LaTeX ($...$).`;
 
-        const customRequirement = type === "ai" ? customAICompetency : customDigitalCompetency;
-        
-        const prompt = `
-Bạn là một chuyên gia giáo dục và phát triển chương trình giảng dạy cấp trung học tại Việt Nam. 
-Nhiệm vụ của bạn là phân tích giáo án gốc và tự động tích hợp các năng lực ${competencyType} theo ${frameworkName}.
-
-THÔNG TIN BỐI CẢNH:
-- Môn học: ${subject}
-- Phân môn: ${subSubject || "Không có"}
-- Khối lớp: ${grade}
-${customRequirement ? `- Yêu cầu riêng của giáo viên: ${customRequirement}` : ""}
-
-DƯỚI ĐÂY LÀ CÁC TÀI LIỆU CƠ SỞ:
-1. Khung nội dung hướng dẫn:
+      const userPrompt = `
+DỰA TRÊN KHUNG NĂNG LỰC:
 ${framework}
 
+HƯỚNG DẪN CỤ THỂ:
 ${specificInstructions}
+${customRequirement ? `YÊU CẦU RIÊNG: ${customRequirement}` : ""}
 
-2. Giáo án gốc cần tích hợp (Dạng HTML):
+GIÁO ÁN GỐC (HTML):
 ${originalLesson}
 
-QUY TRÌNH XỬ LÝ VÀ CẤU TRÚC BẮT BUỘC:
-- Phần 1. Mục tiêu: CHỈ tích hợp thêm đúng 02 mục tiêu ${type === "ai" ? "AI" : "Số"} phù hợp nhất vào mục "3. Mục tiêu chính" (Nếu chưa có mục 3, hãy tạo mới). 
-- Phần Các hoạt động: Phân tích và CHỈ chọn lọc từ 01 đến 02 hoạt động học tập tương thích nhất để bổ sung:
-  + Mục tiêu tích hợp ${type === "ai" ? "AI" : "Số"}.
-  + Hoạt động của Giáo viên: Các bước hướng dẫn, gợi mở cụ thể để học sinh tiếp cận hoặc ứng dụng ${type === "ai" ? "AI" : "Số"}.
-  + Hoạt động của Học sinh: Các nhiệm vụ, thao tác thực tế cụ thể liên quan đến ${type === "ai" ? "AI" : "Số"}.
-- Phần Sản phẩm dự kiến: Bổ sung kết quả cụ thể mà học sinh cần đạt được về mặt năng lực hoặc ứng dụng ${type === "ai" ? "AI" : "Số"} cho các hoạt động đã chọn.
+HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢM BẢO KHÔNG CẮT BỎ PHẦN CUỐI.`;
 
-CÁC NGUYÊN TẮC NGHIÊM NGẶT (KHÔNG ĐƯỢC VI PHẠM):
-1. Bám sát bản gốc 100%: Tôn trọng tuyệt đối nội dung chuyên môn của giáo án mẫu. KHÔNG tự ý sáng tạo, thay đổi hay thêm thắt kiến thức chuyên môn của môn học.
-2. Bảo toàn định dạng: Giữ nguyên toàn bộ cấu trúc, các đề mục và đặc biệt là CÁC BẢNG BIỂU. Tuyệt đối không được bớt hay lược bỏ bất kỳ nội dung hoặc cột/hàng nào trong bảng.
-3. Giữ nguyên hình ảnh: Các thẻ <img> hoặc nội dung liên quan đến hình ảnh phải được giữ nguyên vị trí, không thay đổi.
-4. Công thức toán học: Chuyển đổi toàn bộ các công thức toán học sang định dạng LaTeX (ví dụ: $a^2 + b^2 = c^2$).
-5. Bôi đỏ nội dung mới: MỌI nội dung về ${type === "ai" ? "AI" : "Số"} được bổ sung thêm bắt buộc phải được định dạng màu đỏ bằng thẻ HTML: <span style="color:red;">[Nội dung tích hợp ${type === "ai" ? "AI" : "Số"}]</span>.
+      const generateContent = async (retryCount = 0): Promise<string> => {
+        try {
+          const response = await genAI.models.generateContent({
+            model,
+            contents: userPrompt,
+            config: {
+              systemInstruction,
+              maxOutputTokens: 16384,
+              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } // Stable and fast response
+            }
+          });
 
-Hãy trả về toàn bộ giáo án đã được tích hợp ${type === "ai" ? "AI" : "Số"} dưới dạng HTML. Đảm bảo nội dung tích hợp phải ĐÚNG CHUYÊN MÔN và BIỆT LẬP.
-`;
-
-        const response = await genAI.models.generateContent({
-          model,
-          contents: prompt,
-          config: {
-            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+          const text = response.text;
+          if (text) {
+            const cleaned = text.replace(/^```html\s*/i, "").replace(/\s*```$/i, "").trim();
+            if (cleaned.length < originalLesson.length * 0.7 && !cleaned.toLowerCase().includes("</html>") && !cleaned.toLowerCase().includes("</div>")) {
+              setIsTruncated(true);
+            }
+            return cleaned;
           }
-        });
-
-        const text = response.text;
-        if (text) {
-          return text.replace(/^```html\n?/, "").replace(/\n?```$/, "");
+          throw new Error(`Không nhận được phản hồi từ AI cho phần ${type === "ai" ? "AI" : "NLS"}.`);
+        } catch (err: any) {
+          if (retryCount < 2 && (err.message?.includes("Rpc failed") || err.message?.includes("xhr error") || err.status === "UNKNOWN")) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            return generateContent(retryCount + 1);
+          }
+          throw err;
         }
-        throw new Error(`Không nhận được phản hồi từ AI cho phần ${type === "ai" ? "AI" : "NLS"}.`);
       };
 
-      // Run both in parallel
-      const [aiResult, digitalResult] = await Promise.all([
-        generateIntegratedContent("ai"),
-        generateIntegratedContent("digital")
-      ]);
+      const result = await generateContent();
+      
+      if (type === "ai") {
+        setIntegratedAILesson(result);
+        setActiveTab("ai_output");
+      } else {
+        setIntegratedDigitalLesson(result);
+        setActiveTab("digital_output");
+      }
 
-      setIntegratedAILesson(aiResult);
-      setIntegratedDigitalLesson(digitalResult);
-      setActiveTab("ai_output");
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.log("Request cancelled by user");
       } else {
         console.error("AI Integration Error:", err);
-        setError(err.message || "Đã xảy ra lỗi trong quá trình xử lý.");
+        let userFriendlyError = "Đã xảy ra lỗi trong quá trình xử lý.";
+        if (err.message?.includes("Rpc failed") || err.message?.includes("xhr error")) {
+          userFriendlyError = "Lỗi kết nối máy chủ AI. Vui lòng thử lại hoặc chia nhỏ giáo án.";
+        }
+        setError(userFriendlyError);
       }
     } finally {
-      setIsProcessing(false);
+      setIsProcessingAI(false);
+      setIsProcessingDigital(false);
       abortControllerRef.current = null;
     }
   };
@@ -273,10 +275,13 @@ Hãy trả về toàn bộ giáo án đã được tích hợp ${type === "ai" ?
         <meta charset="utf-8">
         <title>Giao an tich hop ${typeLabel}</title>
         <style>
-          body { font-family: "Times New Roman", serif; line-height: 1.5; }
-          table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+          body { font-family: "Times New Roman", serif; line-height: 1.5; font-size: 13pt; }
+          table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 12pt; }
           table, th, td { border: 1px solid black; padding: 8px; }
           span[style*="color:red"] { color: red !important; font-weight: bold; }
+          h1 { font-size: 16pt; }
+          h2 { font-size: 14pt; }
+          h3 { font-size: 13pt; }
         </style>
       </head>
       <body>
@@ -449,29 +454,53 @@ Hãy trả về toàn bộ giáo án đã được tích hợp ${type === "ai" ?
                   {isUploading ? "Đang đọc tệp..." : "Tải giáo án Word (.docx) lên"}
                 </button>
 
-                <button
-                  onClick={handleIntegrateAI}
-                  disabled={isProcessing || isUploading}
-                  className={`w-full py-4 px-6 rounded-xl font-bold text-white shadow-lg shadow-red-200 flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
-                    isProcessing 
-                    ? 'bg-slate-400 cursor-not-allowed' 
-                    : 'bg-red-600 hover:bg-red-700 hover:shadow-red-300'
-                  }`}
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Đang tích hợp song song...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-5 h-5" />
-                      Tích hợp AI & Năng lực Số ngay
-                    </>
-                  )}
-                </button>
+                <div className="grid grid-cols-1 gap-3">
+                  <button
+                    onClick={() => handleIntegrate("ai")}
+                    disabled={isProcessingAI || isProcessingDigital || isUploading}
+                    className={`w-full py-4 px-6 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
+                      isProcessingAI 
+                      ? 'bg-slate-400 cursor-not-allowed' 
+                      : 'bg-red-600 hover:bg-red-700 shadow-red-200 hover:shadow-red-300'
+                    }`}
+                  >
+                    {isProcessingAI ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Đang tích hợp AI...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5" />
+                        Tích hợp AI
+                      </>
+                    )}
+                  </button>
 
-                {isProcessing && (
+                  <button
+                    onClick={() => handleIntegrate("digital")}
+                    disabled={isProcessingAI || isProcessingDigital || isUploading}
+                    className={`w-full py-4 px-6 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
+                      isProcessingDigital 
+                      ? 'bg-slate-400 cursor-not-allowed' 
+                      : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200 hover:shadow-blue-300'
+                    }`}
+                  >
+                    {isProcessingDigital ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Đang tích hợp NLS...
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-5 h-5" />
+                        Tích hợp Năng lực Số
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {(isProcessingAI || isProcessingDigital) && (
                   <button
                     onClick={handleCancel}
                     className="w-full py-3 px-6 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 transition-all flex items-center justify-center gap-2 text-sm font-bold animate-in fade-in slide-in-from-top-2"
@@ -567,8 +596,14 @@ Hãy trả về toàn bộ giáo án đã được tích hợp ${type === "ai" ?
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8 relative">
-                <AnimatePresence mode="wait">
+                      <div className="flex-1 overflow-y-auto p-8 relative">
+                        {isTruncated && (
+                          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3 text-amber-800 text-xs font-medium animate-in fade-in slide-in-from-top-2">
+                            <AlertCircle className="w-4 h-4 text-amber-600" />
+                            <span>Cảnh báo: Giáo án gốc quá dài, nội dung có thể bị cắt bớt. Hãy thử chia nhỏ giáo án hoặc chạy lại.</span>
+                          </div>
+                        )}
+                        <AnimatePresence mode="wait">
                   {activeTab === "input" ? (
                     <motion.div
                       key="input"
@@ -581,7 +616,7 @@ Hãy trả về toàn bộ giáo án đã được tích hợp ${type === "ai" ?
                         value={originalLesson}
                         onChange={(e) => setOriginalLesson(e.target.value)}
                         className="w-full h-full resize-none border-none focus:ring-0 text-slate-700 leading-relaxed font-mono text-sm bg-transparent"
-                        placeholder="Dán giáo án của bạn vào đây hoặc tải tệp Word lên..."
+                        placeholder="Dán giáo án của bạn vào đây hoặc tải tệp Word lên (Hỗ trợ tối đa 20 trang)..."
                       />
                     </motion.div>
                   ) : (
@@ -592,10 +627,10 @@ Hãy trả về toàn bộ giáo án đã được tích hợp ${type === "ai" ?
                       exit={{ opacity: 0, x: -10 }}
                       className="prose prose-slate max-w-none"
                     >
-                      {isProcessing ? (
+                      {isProcessingAI || isProcessingDigital ? (
                         <div className="flex flex-col items-center justify-center h-64 gap-4 text-slate-400">
                           <Loader2 className="w-12 h-12 animate-spin text-red-600" />
-                          <p className="font-medium animate-pulse">Đang kiến tạo giáo án mới...</p>
+                          <p className="font-medium animate-pulse">Đang kiến tạo giáo án tích hợp {isProcessingAI ? "AI" : "Năng lực Số"}...</p>
                         </div>
                       ) : (
                         <div 
@@ -607,21 +642,34 @@ Hãy trả về toàn bộ giáo án đã được tích hợp ${type === "ai" ?
                   )}
                 </AnimatePresence>
 
-                {activeTab === "input" && !isProcessing && originalLesson.trim() && (
-                  <div className="absolute bottom-8 right-8">
+                {activeTab === "input" && !(isProcessingAI || isProcessingDigital) && originalLesson.trim() && (
+                  <div className="absolute bottom-8 right-8 flex flex-col gap-3">
                     <button
-                      onClick={handleIntegrateAI}
-                      className="bg-red-600 text-white p-4 rounded-full shadow-xl hover:bg-red-700 transition-all hover:scale-110 active:scale-95 group"
+                      onClick={() => handleIntegrate("ai")}
+                      className="bg-red-600 text-white px-6 py-3 rounded-full shadow-xl hover:bg-red-700 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group"
+                      title="Tích hợp Năng lực AI"
                     >
-                      <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                      <Sparkles className="w-5 h-5" />
+                      <span className="text-sm font-bold">Tích hợp AI</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </button>
+                    <button
+                      onClick={() => handleIntegrate("digital")}
+                      className="bg-blue-600 text-white px-6 py-3 rounded-full shadow-xl hover:bg-blue-700 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 group"
+                      title="Tích hợp Năng lực Số"
+                    >
+                      <FileText className="w-5 h-5" />
+                      <span className="text-sm font-bold">Tích hợp NLS</span>
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </button>
                   </div>
                 )}
               </div>
 
               <div className="bg-slate-50 border-t border-slate-200 px-8 py-3 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <span>Trạng thái: {isProcessing ? 'Đang xử lý' : 'Sẵn sàng'}</span>
-                <span>Mô hình: Gemini 3.1 Flash</span>
+                <span>Trạng thái: {isProcessingAI || isProcessingDigital ? 'Đang xử lý' : 'Sẵn sàng'}</span>
+                <span>Hỗ trợ: Tối đa 20 trang</span>
+                <span>Mô hình: {originalLesson.length > 25000 ? 'Gemini 3.1 Pro' : 'Gemini 3 Flash'}</span>
               </div>
             </div>
             </div>
