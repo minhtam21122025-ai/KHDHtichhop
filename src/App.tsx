@@ -44,7 +44,8 @@ import { Login } from "./components/Login";
 import { AdminDashboard } from "./components/AdminDashboard";
 
 // Initialize Gemini API
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const apiKey = process.env.GEMINI_API_KEY || "";
+const genAI = new GoogleGenAI({ apiKey });
 
 type IntegrationMode = "ai" | "digital" | "admin";
 
@@ -181,6 +182,10 @@ export default function App() {
     abortControllerRef.current = new AbortController();
 
     try {
+      if (!apiKey) {
+        throw new Error("API Key (GEMINI_API_KEY) chưa được cấu hình. Nếu bạn đang chạy trên Vercel, hãy thêm GEMINI_API_KEY vào Environment Variables.");
+      }
+
       // Determine model based on document length (Flash for speed, Pro for long/complex docs)
       const model = originalLesson.length > 25000 ? "gemini-3.1-pro-preview" : "gemini-3-flash-preview";
       
@@ -280,10 +285,14 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
         console.log("Request cancelled by user");
       } else {
         console.error("AI Integration Error:", err);
-        let userFriendlyError = "Đã xảy ra lỗi trong quá trình xử lý.";
+        let userFriendlyError = err.message || "Đã xảy ra lỗi trong quá trình xử lý.";
+        
         if (err.message?.includes("Rpc failed") || err.message?.includes("xhr error")) {
           userFriendlyError = "Lỗi kết nối máy chủ AI. Vui lòng thử lại hoặc chia nhỏ giáo án.";
+        } else if (err.message?.includes("API key")) {
+          userFriendlyError = "Lỗi API Key: Vui lòng kiểm tra lại cấu hình GEMINI_API_KEY trong cài đặt môi trường.";
         }
+        
         setError(userFriendlyError);
       }
     } finally {
