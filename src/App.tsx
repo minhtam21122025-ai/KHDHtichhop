@@ -198,9 +198,8 @@ export default function App() {
         throw new Error("API Key (GEMINI_API_KEY) chưa được cấu hình. Nếu bạn đang chạy trên Vercel, hãy thêm GEMINI_API_KEY vào Environment Variables.");
       }
 
-      // Use gemini-flash-latest for higher free tier quota (1M tokens/min)
-      // and maximum stability.
-      const model = "gemini-flash-latest";
+      // Use gemini-2.0-flash for maximum stability and performance
+      const model = "gemini-2.0-flash";
       
       // 1. Prepare Frameworks
       const gradeNum = parseInt(grade.replace(/\D/g, ""));
@@ -743,7 +742,7 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
               <div className="bg-slate-50 border-t border-slate-200 px-8 py-3 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 <span>Trạng thái: {isProcessingAI || isProcessingDigital ? 'Đang xử lý' : 'Sẵn sàng'}</span>
                 <span>Hỗ trợ: Tối đa 20 trang</span>
-                <span>Mô hình: Gemini Flash (Ổn định - Miễn phí)</span>
+                <span>Mô hình: Gemini 2.0 Flash (Ổn định - Miễn phí)</span>
               </div>
             </div>
             </div>
