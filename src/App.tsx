@@ -170,9 +170,21 @@ export default function App() {
     if (type === "ai") {
       setIsProcessingAI(true);
       setIntegratedAILesson("");
+      setActiveTab("ai_output");
     } else {
       setIsProcessingDigital(true);
       setIntegratedDigitalLesson("");
+      setActiveTab("digital_output");
+    }
+
+    // Check lesson length (approximate token count)
+    // 1M tokens is roughly 3-4M characters for Vietnamese/HTML
+    // We set a limit of 3.5M characters to maximize the 1M token window
+    if (originalLesson.length > 3500000) {
+      setError("Giáo án quá dài (vượt quá giới hạn 3.5 triệu ký tự). Vui lòng chia nhỏ giáo án hoặc lược bỏ bớt nội dung không cần thiết.");
+      setIsProcessingAI(false);
+      setIsProcessingDigital(false);
+      return;
     }
 
     setIsTruncated(false);
@@ -186,8 +198,8 @@ export default function App() {
         throw new Error("API Key (GEMINI_API_KEY) chưa được cấu hình. Nếu bạn đang chạy trên Vercel, hãy thêm GEMINI_API_KEY vào Environment Variables.");
       }
 
-      // Use gemini-3-flash-preview for maximum free tier limits and high speed
-      // It supports up to 1M tokens, which easily handles 20 pages (approx 30k-40k tokens)
+      // Use gemini-3-flash-preview for maximum stability, speed and high free tier limits
+      // It supports up to 1M tokens, which easily handles 20-50 pages
       const model = "gemini-3-flash-preview";
       
       // 1. Prepare Frameworks
@@ -225,8 +237,11 @@ NGUYÊN TẮC TỐI THƯỢNG:
 1. BẢO TOÀN 100% NỘI DUNG GỐC: Tuyệt đối không lược bỏ, không tóm tắt, không thay đổi bất kỳ từ ngữ nào của giáo án gốc.
 2. GIỮ NGUYÊN ĐỊNH DẠNG: Giữ nguyên toàn bộ cấu trúc HTML, bảng biểu, hình ảnh (<img>), công thức.
 3. KHÔNG CẮT XÉN: Trả về TOÀN BỘ giáo án.
-4. NỘI DUNG MỚI: Chỉ thêm 02 mục tiêu và 01-02 hoạt động phù hợp. Nội dung thêm mới PHẢI nằm trong <span style="color:red;">...</span>.
-5. CÔNG THỨC: Chuyển công thức sang LaTeX ($...$).`;
+4. VỊ TRÍ TÍCH HỢP (Đặc biệt cho giáo án không chia cột):
+   - Tích hợp thêm 02 mục tiêu vào phần "I. Mục tiêu".
+   - Trong các hoạt động (Tiến trình dạy học), tích hợp thêm nội dung vào mục "Mục tiêu" của hoạt động và "Bước 1: Giao nhiệm vụ cho học sinh".
+5. NỘI DUNG MỚI: Nội dung thêm mới PHẢI nằm trong <span style="color:red;">...</span>.
+6. CÔNG THỨC: Chuyển công thức sang LaTeX ($...$).`;
 
       const userPrompt = `
 DỰA TRÊN KHUNG NĂNG LỰC:
@@ -249,7 +264,7 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
             config: {
               systemInstruction,
               maxOutputTokens: 16384,
-              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } // Stable and fast response
+              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
             }
           });
 
@@ -275,10 +290,8 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
       
       if (type === "ai") {
         setIntegratedAILesson(result);
-        setActiveTab("ai_output");
       } else {
         setIntegratedDigitalLesson(result);
-        setActiveTab("digital_output");
       }
 
     } catch (err: any) {
@@ -292,6 +305,8 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
           userFriendlyError = "Lỗi kết nối máy chủ AI. Vui lòng thử lại hoặc chia nhỏ giáo án.";
         } else if (err.message?.includes("API key")) {
           userFriendlyError = "Lỗi API Key: Vui lòng kiểm tra lại cấu hình GEMINI_API_KEY trong cài đặt môi trường.";
+        } else if (err.message?.includes("exceeds the maximum number of tokens")) {
+          userFriendlyError = "Giáo án quá dài so với giới hạn của mô hình AI. Vui lòng chia nhỏ giáo án thành nhiều phần để xử lý.";
         }
         
         setError(userFriendlyError);
@@ -710,7 +725,7 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
               <div className="bg-slate-50 border-t border-slate-200 px-8 py-3 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 <span>Trạng thái: {isProcessingAI || isProcessingDigital ? 'Đang xử lý' : 'Sẵn sàng'}</span>
                 <span>Hỗ trợ: Tối đa 20 trang</span>
-                <span>Mô hình: Gemini 3 Flash (Free Tier)</span>
+                <span>Mô hình: Gemini 3 Flash (Tối ưu - Miễn phí)</span>
               </div>
             </div>
             </div>
