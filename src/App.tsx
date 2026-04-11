@@ -210,9 +210,10 @@ export default function App() {
         throw new Error("API Key (GEMINI_API_KEY) chưa được cấu hình. Nếu bạn đang chạy trên Vercel, hãy thêm GEMINI_API_KEY vào Environment Variables.");
       }
 
-      // Use gemini-2.0-flash for maximum stability and performance.
-      // This model is recognized in this environment (no 404) unlike 1.5 Flash.
-      const model = "gemini-2.0-flash";
+      // Use gemini-flash-latest (Gemini 1.5 Flash)
+      // Reason: Free tier quota is 1,000,000 tokens/min (4x higher than 2.0 Flash)
+      // This is the most stable alias for high-volume lesson plans.
+      const model = "gemini-flash-latest";
       
       // 1. Prepare Frameworks
       const gradeNum = parseInt(grade.replace(/\D/g, ""));
@@ -301,9 +302,9 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
             err.message?.includes("quota") ||
             err.message?.includes("high demand");
 
-          if (retryCount < 4 && isRetryable) {
-            // Exponential backoff: 5s, 15s, 30s, 45s
-            const delay = retryCount === 0 ? 5000 : retryCount === 1 ? 15000 : retryCount === 2 ? 30000 : 45000;
+          if (retryCount < 5 && isRetryable) {
+            // Exponential backoff: 5s, 15s, 30s, 60s, 90s
+            const delay = retryCount === 0 ? 5000 : retryCount === 1 ? 15000 : retryCount === 2 ? 30000 : retryCount === 3 ? 60000 : 90000;
             await new Promise(resolve => setTimeout(resolve, delay));
             return generateContent(retryCount + 1);
           }
@@ -335,8 +336,8 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
         } else if (err.message?.includes("UNAVAILABLE") || err.message?.includes("503") || err.message?.includes("high demand")) {
           userFriendlyError = "Máy chủ AI đang quá tải (Lỗi 503). Vui lòng đợi vài giây và nhấn nút thử lại.";
         } else if (err.message?.includes("429") || err.message?.includes("quota") || err.message?.includes("RESOURCE_EXHAUSTED")) {
-          userFriendlyError = "Bạn đã vượt quá hạn mức sử dụng (Lỗi 429). Hệ thống đang tạm nghỉ 60 giây để hồi phục.";
-          setCooldownTime(60);
+          userFriendlyError = "Bạn đã vượt quá hạn mức sử dụng (Lỗi 429). Hệ thống đang tạm nghỉ 90 giây để hồi phục.";
+          setCooldownTime(90);
         }
         
         setError(userFriendlyError);
@@ -765,7 +766,7 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
               <div className="bg-slate-50 border-t border-slate-200 px-8 py-3 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 <span>Trạng thái: {isProcessingAI || isProcessingDigital ? 'Đang xử lý' : 'Sẵn sàng'}</span>
                 <span>Hỗ trợ: Tối đa 20 trang</span>
-                <span>Mô hình: Gemini 2.0 Flash (Ổn định - Miễn phí)</span>
+                <span>Mô hình: Gemini Flash 1.5 (Hạn mức 1M - Ổn định nhất)</span>
               </div>
             </div>
             </div>
