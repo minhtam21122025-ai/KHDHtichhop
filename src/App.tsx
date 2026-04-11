@@ -362,13 +362,14 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
         <meta charset="utf-8">
         <title>Giao an tich hop ${typeLabel}</title>
         <style>
-          body { font-family: "Times New Roman", serif; line-height: 1.5; font-size: 13pt; }
-          table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 12pt; }
-          table, th, td { border: 1px solid black; padding: 8px; }
+          body { font-family: "Times New Roman", Times, serif; line-height: 1.5; font-size: 14pt; }
+          table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 14pt; }
+          table, th, td { border: 1px solid black; padding: 8px; font-family: "Times New Roman", Times, serif; }
           span[style*="color:red"] { color: red !important; font-weight: bold; }
-          h1 { font-size: 16pt; }
-          h2 { font-size: 14pt; }
-          h3 { font-size: 13pt; }
+          h1 { font-size: 18pt; font-family: "Times New Roman", Times, serif; }
+          h2 { font-size: 16pt; font-family: "Times New Roman", Times, serif; }
+          h3 { font-size: 14pt; font-family: "Times New Roman", Times, serif; }
+          p, div, span, li { font-size: 14pt; font-family: "Times New Roman", Times, serif; }
         </style>
       </head>
       <body>
