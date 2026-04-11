@@ -25,7 +25,8 @@ import {
   Download,
   LogOut,
   User as UserIcon,
-  ShieldCheck
+  ShieldCheck,
+  Clock
 } from "lucide-react";
 import { AI_FRAMEWORK_3439, AI_OBJECTIVES_BY_GRADE } from "./lib/ai-framework";
 import { 
@@ -60,6 +61,7 @@ export default function App() {
   const [isTruncated, setIsTruncated] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
+  const [cooldownTime, setCooldownTime] = useState(0);
   const [activeTab, setActiveTab] = useState<"input" | "ai_output" | "digital_output">("input");
 
   // Selection states
@@ -161,6 +163,16 @@ export default function App() {
     }
   };
 
+  // Cooldown timer effect
+  useEffect(() => {
+    if (cooldownTime > 0) {
+      const timer = setInterval(() => {
+        setCooldownTime(prev => Math.max(0, prev - 1));
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [cooldownTime]);
+
   const handleIntegrate = async (type: "ai" | "digital") => {
     if (!originalLesson.trim()) {
       setError("Vui lòng nhập hoặc tải lên giáo án gốc.");
@@ -198,7 +210,8 @@ export default function App() {
         throw new Error("API Key (GEMINI_API_KEY) chưa được cấu hình. Nếu bạn đang chạy trên Vercel, hãy thêm GEMINI_API_KEY vào Environment Variables.");
       }
 
-      // Use gemini-2.0-flash for maximum stability and performance
+      // Use gemini-2.0-flash for maximum stability and performance.
+      // This model is recognized in this environment (no 404) unlike 1.5 Flash.
       const model = "gemini-2.0-flash";
       
       // 1. Prepare Frameworks
@@ -288,10 +301,9 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
             err.message?.includes("quota") ||
             err.message?.includes("high demand");
 
-          if (retryCount < 3 && isRetryable) {
-            // Exponential backoff: 5s, 15s, 30s for quota/overload
-            // 429 errors often need more time to clear
-            const delay = retryCount === 0 ? 5000 : retryCount === 1 ? 15000 : 30000;
+          if (retryCount < 4 && isRetryable) {
+            // Exponential backoff: 5s, 15s, 30s, 45s
+            const delay = retryCount === 0 ? 5000 : retryCount === 1 ? 15000 : retryCount === 2 ? 30000 : 45000;
             await new Promise(resolve => setTimeout(resolve, delay));
             return generateContent(retryCount + 1);
           }
@@ -323,7 +335,8 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
         } else if (err.message?.includes("UNAVAILABLE") || err.message?.includes("503") || err.message?.includes("high demand")) {
           userFriendlyError = "Máy chủ AI đang quá tải (Lỗi 503). Vui lòng đợi vài giây và nhấn nút thử lại.";
         } else if (err.message?.includes("429") || err.message?.includes("quota") || err.message?.includes("RESOURCE_EXHAUSTED")) {
-          userFriendlyError = "Bạn đã vượt quá hạn mức sử dụng miễn phí của AI (Lỗi 429). Vui lòng đợi khoảng 1 phút và thử lại.";
+          userFriendlyError = "Bạn đã vượt quá hạn mức sử dụng (Lỗi 429). Hệ thống đang tạm nghỉ 60 giây để hồi phục.";
+          setCooldownTime(60);
         }
         
         setError(userFriendlyError);
@@ -530,9 +543,9 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
                 <div className="grid grid-cols-1 gap-3">
                   <button
                     onClick={() => handleIntegrate("ai")}
-                    disabled={isProcessingAI || isProcessingDigital || isUploading}
+                    disabled={isProcessingAI || isProcessingDigital || isUploading || cooldownTime > 0}
                     className={`w-full py-4 px-6 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
-                      isProcessingAI 
+                      isProcessingAI || cooldownTime > 0
                       ? 'bg-slate-400 cursor-not-allowed' 
                       : 'bg-red-600 hover:bg-red-700 shadow-red-200 hover:shadow-red-300'
                     }`}
@@ -541,6 +554,11 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
                         Đang tích hợp AI...
+                      </>
+                    ) : cooldownTime > 0 ? (
+                      <>
+                        <Clock className="w-5 h-5" />
+                        Thử lại sau {cooldownTime}s
                       </>
                     ) : (
                       <>
@@ -552,9 +570,9 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
 
                   <button
                     onClick={() => handleIntegrate("digital")}
-                    disabled={isProcessingAI || isProcessingDigital || isUploading}
+                    disabled={isProcessingAI || isProcessingDigital || isUploading || cooldownTime > 0}
                     className={`w-full py-4 px-6 rounded-xl font-bold text-white shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
-                      isProcessingDigital 
+                      isProcessingDigital || cooldownTime > 0
                       ? 'bg-slate-400 cursor-not-allowed' 
                       : 'bg-blue-600 hover:bg-blue-700 shadow-blue-200 hover:shadow-blue-300'
                     }`}
@@ -563,6 +581,11 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
                       <>
                         <Loader2 className="w-5 h-5 animate-spin" />
                         Đang tích hợp NLS...
+                      </>
+                    ) : cooldownTime > 0 ? (
+                      <>
+                        <Clock className="w-5 h-5" />
+                        Thử lại sau {cooldownTime}s
                       </>
                     ) : (
                       <>
