@@ -198,9 +198,9 @@ export default function App() {
         throw new Error("API Key (GEMINI_API_KEY) chưa được cấu hình. Nếu bạn đang chạy trên Vercel, hãy thêm GEMINI_API_KEY vào Environment Variables.");
       }
 
-      // Use gemini-3-flash-preview for maximum stability, speed and high free tier limits
-      // It supports up to 1M tokens, which easily handles 20-50 pages
-      const model = "gemini-3-flash-preview";
+      // Use gemini-1.5-flash-latest for higher free tier quota (1M tokens/min)
+      // compared to Gemini 2.0 Flash (250k tokens/min).
+      const model = "gemini-1.5-flash-latest";
       
       // 1. Prepare Frameworks
       const gradeNum = parseInt(grade.replace(/\D/g, ""));
@@ -264,8 +264,7 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
             contents: userPrompt,
             config: {
               systemInstruction,
-              maxOutputTokens: 16384,
-              thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+              maxOutputTokens: 16384
             }
           });
 
@@ -284,12 +283,16 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
             err.message?.includes("xhr error") || 
             err.status === "UNKNOWN" || 
             err.status === "UNAVAILABLE" || 
+            err.status === "RESOURCE_EXHAUSTED" ||
+            err.message?.includes("429") ||
             err.message?.includes("503") ||
+            err.message?.includes("quota") ||
             err.message?.includes("high demand");
 
           if (retryCount < 3 && isRetryable) {
-            // Exponential backoff: 2s, 4s, 6s
-            const delay = (retryCount + 1) * 2000;
+            // Exponential backoff: 5s, 15s, 30s for quota/overload
+            // 429 errors often need more time to clear
+            const delay = retryCount === 0 ? 5000 : retryCount === 1 ? 15000 : 30000;
             await new Promise(resolve => setTimeout(resolve, delay));
             return generateContent(retryCount + 1);
           }
@@ -320,6 +323,8 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
           userFriendlyError = "Giáo án quá dài so với giới hạn của mô hình AI. Vui lòng chia nhỏ giáo án thành nhiều phần để xử lý.";
         } else if (err.message?.includes("UNAVAILABLE") || err.message?.includes("503") || err.message?.includes("high demand")) {
           userFriendlyError = "Máy chủ AI đang quá tải (Lỗi 503). Vui lòng đợi vài giây và nhấn nút thử lại.";
+        } else if (err.message?.includes("429") || err.message?.includes("quota") || err.message?.includes("RESOURCE_EXHAUSTED")) {
+          userFriendlyError = "Bạn đã vượt quá hạn mức sử dụng miễn phí của AI (Lỗi 429). Vui lòng đợi khoảng 1 phút và thử lại.";
         }
         
         setError(userFriendlyError);
@@ -738,7 +743,7 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
               <div className="bg-slate-50 border-t border-slate-200 px-8 py-3 flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 <span>Trạng thái: {isProcessingAI || isProcessingDigital ? 'Đang xử lý' : 'Sẵn sàng'}</span>
                 <span>Hỗ trợ: Tối đa 20 trang</span>
-                <span>Mô hình: Gemini 3 Flash (Tối ưu - Miễn phí)</span>
+                <span>Mô hình: Gemini Flash (Ổn định - Miễn phí)</span>
               </div>
             </div>
             </div>
