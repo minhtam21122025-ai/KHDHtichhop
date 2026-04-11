@@ -198,9 +198,9 @@ export default function App() {
         throw new Error("API Key (GEMINI_API_KEY) chưa được cấu hình. Nếu bạn đang chạy trên Vercel, hãy thêm GEMINI_API_KEY vào Environment Variables.");
       }
 
-      // Use gemini-1.5-flash-latest for higher free tier quota (1M tokens/min)
-      // compared to Gemini 2.0 Flash (250k tokens/min).
-      const model = "gemini-1.5-flash-latest";
+      // Use gemini-flash-latest for higher free tier quota (1M tokens/min)
+      // and maximum stability.
+      const model = "gemini-flash-latest";
       
       // 1. Prepare Frameworks
       const gradeNum = parseInt(grade.replace(/\D/g, ""));
