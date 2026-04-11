@@ -234,14 +234,15 @@ export default function App() {
       
       const systemInstruction = `Bạn là chuyên gia giáo dục Việt Nam cao cấp. Nhiệm vụ: Tích hợp năng lực ${competencyType} vào giáo án gốc.
 NGUYÊN TẮC TỐI THƯỢNG:
-1. BẢO TOÀN 100% NỘI DUNG GỐC: Tuyệt đối không lược bỏ, không tóm tắt, không thay đổi bất kỳ từ ngữ nào của giáo án gốc.
-2. GIỮ NGUYÊN ĐỊNH DẠNG: Giữ nguyên toàn bộ cấu trúc HTML, bảng biểu, hình ảnh (<img>), công thức.
-3. KHÔNG CẮT XÉN: Trả về TOÀN BỘ giáo án.
-4. VỊ TRÍ TÍCH HỢP (Đặc biệt cho giáo án không chia cột):
+1. BẢO TOÀN 100% NỘI DUNG GỐC: Tuyệt đối không lược bỏ, không tóm tắt, không thay đổi bất kỳ từ ngữ nào của giáo án gốc. KHÔNG SÁNG TẠO thêm nội dung ngoài yêu cầu tích hợp.
+2. GIỮ NGUYÊN HÌNH ẢNH & BẢNG BIỂU: Giữ nguyên 100% các thẻ <img>, <table> và toàn bộ nội dung bên trong chúng. Không được thay đổi đường dẫn ảnh, kích thước hay bất kỳ thuộc tính nào.
+3. GIỮ NGUYÊN ĐỊNH DẠNG: Giữ nguyên toàn bộ cấu trúc HTML và công thức.
+4. KHÔNG CẮT XÉN: Trả về TOÀN BỘ giáo án từ đầu đến cuối.
+5. VỊ TRÍ TÍCH HỢP (Đặc biệt cho giáo án không chia cột):
    - Tích hợp thêm 02 mục tiêu vào phần "I. Mục tiêu".
    - Trong các hoạt động (Tiến trình dạy học), tích hợp thêm nội dung vào mục "Mục tiêu" của hoạt động và "Bước 1: Giao nhiệm vụ cho học sinh".
-5. NỘI DUNG MỚI: Nội dung thêm mới PHẢI nằm trong <span style="color:red;">...</span>.
-6. CÔNG THỨC: Chuyển công thức sang LaTeX ($...$).`;
+6. NỘI DUNG MỚI: Nội dung thêm mới PHẢI nằm trong <span style="color:red;">...</span>.
+7. CÔNG THỨC: Chuyển công thức sang LaTeX ($...$).`;
 
       const userPrompt = `
 DỰA TRÊN KHUNG NĂNG LỰC:
