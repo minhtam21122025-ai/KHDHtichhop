@@ -279,8 +279,18 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
           }
           throw new Error(`Không nhận được phản hồi từ AI cho phần ${type === "ai" ? "AI" : "NLS"}.`);
         } catch (err: any) {
-          if (retryCount < 2 && (err.message?.includes("Rpc failed") || err.message?.includes("xhr error") || err.status === "UNKNOWN")) {
-            await new Promise(resolve => setTimeout(resolve, 1500));
+          const isRetryable = 
+            err.message?.includes("Rpc failed") || 
+            err.message?.includes("xhr error") || 
+            err.status === "UNKNOWN" || 
+            err.status === "UNAVAILABLE" || 
+            err.message?.includes("503") ||
+            err.message?.includes("high demand");
+
+          if (retryCount < 3 && isRetryable) {
+            // Exponential backoff: 2s, 4s, 6s
+            const delay = (retryCount + 1) * 2000;
+            await new Promise(resolve => setTimeout(resolve, delay));
             return generateContent(retryCount + 1);
           }
           throw err;
@@ -308,6 +318,8 @@ HÃY TRẢ VỀ TOÀN BỘ GIÁO ÁN ĐÃ TÍCH HỢP DƯỚI DẠNG HTML. ĐẢ
           userFriendlyError = "Lỗi API Key: Vui lòng kiểm tra lại cấu hình GEMINI_API_KEY trong cài đặt môi trường.";
         } else if (err.message?.includes("exceeds the maximum number of tokens")) {
           userFriendlyError = "Giáo án quá dài so với giới hạn của mô hình AI. Vui lòng chia nhỏ giáo án thành nhiều phần để xử lý.";
+        } else if (err.message?.includes("UNAVAILABLE") || err.message?.includes("503") || err.message?.includes("high demand")) {
+          userFriendlyError = "Máy chủ AI đang quá tải (Lỗi 503). Vui lòng đợi vài giây và nhấn nút thử lại.";
         }
         
         setError(userFriendlyError);
